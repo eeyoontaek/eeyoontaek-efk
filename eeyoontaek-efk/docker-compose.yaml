@@ -1,0 +1,55 @@
+version: "3.9"
+services:
+    fastapi:
+        container_name: fastapi
+        restart: always
+        build:
+            context: ./fastapi
+            dockerfile: Dockerfile
+
+        ports:
+            - 8080:8080
+    nginx:
+        container_name: nginx
+        restart: always
+        build:
+            context: ./nginx
+            dockerfile: Dockerfile
+        ports:
+            - 80:80
+        links:
+            - fluentd
+        logging:
+            driver: "fluentd"
+            options:
+                fluentd-address: fluentd:24224
+                tag: docker.nginx_access
+        depends_on:
+            - "fluentd"
+    fluentd:
+        container_name: fluentd
+        build:
+            context: ./fluentd
+            dockerfile: Dockerfile
+        volumes:
+            - /var/lib/docker/containers:/var/lib/docker/containers
+        ports:
+            - '24224:24224'
+            - '24224:24224/udp'
+networks:
+    efk:
+        driver: bridge
+# nginx:
+#   container_name: nginx
+#   build:
+#     context: ./nginx
+#     dockerfile: Dockerfile
+#   links:
+#     - fluentd
+#     - fastapi
+#   ports:
+#     - '80:80'
+#   log_driver: 'fluentd'
+#   log_opt:
+#     fluentd-address: localhost:24224
+#     tag: docker.{{.FullID}}
